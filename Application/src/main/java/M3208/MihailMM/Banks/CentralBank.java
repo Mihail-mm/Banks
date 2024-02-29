@@ -24,13 +24,17 @@ public class CentralBank implements ICentralBank {
     }
 
     @Override
-    public List<IBank> GetBanks() {
+    public List<IBank> GetBanks()
+    {
         return Collections.unmodifiableList(_banks);
     }
 
     @Override
     public IBank CreateBank(String name, Double debitInterest, List<DepositRate> depositRates, Double creditInterest, Double creditLimit) {
-        return new Bank(name, debitInterest, depositRates, creditInterest, creditLimit);
+        IBank bank = new Bank(name, debitInterest, depositRates, creditInterest, creditLimit);
+        _banks.add(bank);
+        _subscribers.add(bank);
+        return bank;
     }
 
     @Override

@@ -38,27 +38,27 @@ public class Bank implements IBank{
 
     @Override
     public double GetDebitInterest() {
-        return 0;
+        return _debitInterest;
     }
 
     @Override
     public List<DepositRate> GetDepositRates() {
-        return null;
+        return _depositRates;
     }
 
     @Override
     public double GetCreditInterest() {
-        return 0;
+        return _creditInterest;
     }
 
     @Override
     public Double GetCreditLimit() {
-        return null;
+        return _creditLimit;
     }
 
     @Override
     public List<IBankAccount> Accounts() {
-        return null;
+        return _accounts;
     }
 
     @Override
