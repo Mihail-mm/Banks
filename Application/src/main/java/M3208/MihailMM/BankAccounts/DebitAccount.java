@@ -2,47 +2,80 @@ package M3208.MihailMM.BankAccounts;
 
 import M3208.MihailMM.Banks.IBank;
 import M3208.MihailMM.Clients.Client;
-import M3208.MihailMM.Exceptions.BankAccountException;
+import M3208.MihailMM.Clients.ClientStatus.DoubtfulStatus;
+import M3208.MihailMM.ResultTypes.CancelTransactionResults.CancelTransactionAlreadyCancel;
+import M3208.MihailMM.ResultTypes.CancelTransactionResults.CancelTransactionNotFound;
+import M3208.MihailMM.ResultTypes.CancelTransactionResults.CancelTransactionResult;
+import M3208.MihailMM.ResultTypes.CancelTransactionResults.CancelTransactionSuccess;
+import M3208.MihailMM.ResultTypes.TransferMoneyResults.TransferMoneyDoubtfulResult;
+import M3208.MihailMM.ResultTypes.TransferMoneyResults.TransferMoneyNotEnough;
+import M3208.MihailMM.ResultTypes.TransferMoneyResults.TransferMoneyResult;
+import M3208.MihailMM.ResultTypes.TransferMoneyResults.TransferMoneySuccess;
+import M3208.MihailMM.ResultTypes.WithdrawMoneyResults.NotEnoughMoneyResult;
+import M3208.MihailMM.ResultTypes.WithdrawMoneyResults.WithdrawMoneyNotVerified;
+import M3208.MihailMM.ResultTypes.WithdrawMoneyResults.WithdrawResult;
+import M3208.MihailMM.ResultTypes.WithdrawMoneyResults.WithdrawSuccessResult;
 import M3208.MihailMM.Transactions.ITransaction;
 import M3208.MihailMM.Transactions.Transaction;
 import M3208.MihailMM.Transactions.TransactionStatus.CancelStatus;
 import M3208.MihailMM.Transactions.TransactionStatus.CompletedStatus;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 public class DebitAccount implements IBankAccount{
+    private UUID _id;
     private List<ITransaction> _history;
-    private Double _accumulatedInterest;
-    private Client _client;
-    private Double _balance;
-    private double _interest;
-    private IBank _bank;
+    private Float _accumulatedInterest;
+    private final Client _client;
+    private Float _balance;
+    private final IBank _bank;
+
+    public DebitAccount(Float balance, Client client, IBank bank) {
+        _id = UUID.randomUUID();
+        _history = new ArrayList<>();
+        _balance = balance;
+        _client = client;
+        _bank = bank;
+    }
+
+    @Override
+    public UUID GetId() {
+        return _id;
+    }
+
     @Override
     public Client GetClient() {
         return _client;
     }
 
     @Override
-    public Double GetBalance() {
+    public Float GetBalance() {
         return _balance;
     }
 
     @Override
-    public void WithdrawMoney(Double money) {
+    public WithdrawResult WithdrawMoney(Float money) {
         if (_balance < money)
         {
-            throw new BankAccountException("don't have money");
+            return new NotEnoughMoneyResult();
+        }
+
+        if (_bank.GetMaxWithdraw() < money && _client.get_status() instanceof DoubtfulStatus) {
+            return new WithdrawMoneyNotVerified();
         }
 
         var newTransaction = new Transaction(money, this, null);
         _history.add(newTransaction);
         _balance -= money;
         newTransaction.SetStatus(new CompletedStatus());
+        return new WithdrawSuccessResult();
     }
 
     @Override
-    public void Replenishment(Double money) {
+    public void Replenishment(Float money) {
         var newTransaction = new Transaction(money, null, this);
         _history.add(newTransaction);
         _balance += money;
@@ -50,20 +83,25 @@ public class DebitAccount implements IBankAccount{
     }
 
     @Override
-    public void WithdrawMoney(Double money, IBankAccount toTranslation) {
+    public WithdrawResult WithdrawMoney(Float money, IBankAccount toTranslation) {
         if (_balance < money)
         {
-            throw new BankAccountException("don't have money");
+            return new NotEnoughMoneyResult();
+        }
+
+        if (_bank.GetMaxWithdraw() < money && _client.get_status() instanceof DoubtfulStatus) {
+            return new WithdrawMoneyNotVerified();
         }
 
         var newTransaction = new Transaction(money, this, toTranslation);
         _history.add(newTransaction);
-        _balance -= money;
+        newTransaction.Execute();
         newTransaction.SetStatus(new CompletedStatus());
+        return new WithdrawSuccessResult();
     }
 
     @Override
-    public void Replenishment(Double money, IBankAccount fromTranslation) {
+    public void Replenishment(Float money, IBankAccount fromTranslation) {
         var newTransaction = new Transaction(money, fromTranslation, this);
         _history.add(newTransaction);
         _balance += money;
@@ -71,20 +109,34 @@ public class DebitAccount implements IBankAccount{
     }
 
     @Override
-    public void TransferMoney(IBankAccount toTranslation, Double money) {
-        WithdrawMoney(money, toTranslation);
+    public TransferMoneyResult TransferMoney(IBankAccount toTranslation, Float money) {
+        if (money > _bank.GetMaxRemittance() && _client.get_status() instanceof DoubtfulStatus) {
+            return new TransferMoneyDoubtfulResult();
+        }
+        if (_balance < money)
+        {
+            return new TransferMoneyNotEnough();
+        }
+
+        var newTransaction = new Transaction(money, this, toTranslation);
+        _history.add(newTransaction);
+        newTransaction.Execute();
+        newTransaction.SetStatus(new CompletedStatus());
+        return new TransferMoneySuccess();
     }
 
     @Override
-    public void CancelTransaction(ITransaction toCancel) {
-        if (!_history.contains(toCancel)) {
-            throw new BankAccountException("not found transaction");
+    public CancelTransactionResult CancelTransaction(UUID idTransaction) {
+        ITransaction cancelTransaction = _history.stream().filter(transaction -> transaction.GetId() == idTransaction).findFirst().orElse(null);
+        if (cancelTransaction == null) {
+            return new CancelTransactionNotFound();
         }
-        if (toCancel.GetStatus() instanceof CancelStatus) {
-            throw new BankAccountException("");
+        if (cancelTransaction.GetStatus() instanceof CancelStatus) {
+            return new CancelTransactionAlreadyCancel();
         }
-        Replenishment(toCancel.GetTransferAmount());
-        toCancel.SetStatus(new CancelStatus());
+        Replenishment(cancelTransaction.GetTransferAmount());
+        cancelTransaction.SetStatus(new CancelStatus());
+        return new CancelTransactionSuccess();
     }
 
     @Override
@@ -106,9 +158,9 @@ public class DebitAccount implements IBankAccount{
         if (time.getDayOfMonth() == 1)
         {
             this.Replenishment(_accumulatedInterest);
-            _accumulatedInterest = 0d;
+            _accumulatedInterest = 0f;
         }
 
-        _accumulatedInterest += _balance * _interest;
+        _accumulatedInterest += _balance * _bank.GetDebitInterest();
     }
 }

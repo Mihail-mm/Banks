@@ -6,8 +6,8 @@ import M3208.MihailMM.Observer.ISubscriber;
 import java.time.LocalDate;
 import java.util.*;
 
-public class CentralBank implements ICentralBank {
-    private static Optional<CentralBank> instance;
+public class CentralBank {
+    private static CentralBank instance;
     private final List<IBank> _banks;
     private final List<ISubscriber> _subscribers;
 
@@ -17,33 +17,24 @@ public class CentralBank implements ICentralBank {
     }
 
     public static CentralBank getInstance() {
-        if (instance.isEmpty()) {
-            instance = Optional.of(new CentralBank());
+        if (instance == null) {
+            instance = new CentralBank();
         }
-        return instance.get();
+        return instance;
     }
 
-    @Override
     public List<IBank> GetBanks()
     {
         return Collections.unmodifiableList(_banks);
     }
 
-    @Override
-    public IBank CreateBank(String name, Double debitInterest, List<DepositRate> depositRates, Double creditInterest, Double creditLimit) {
-        IBank bank = new Bank(name, debitInterest, depositRates, creditInterest, creditLimit);
+    public IBank CreateBank(String name, Float debitInterest, List<DepositRate> depositRates, Float creditCommission, Float maxWithdraw, Float maxRemittance) {
+        IBank bank = new Bank(name, debitInterest, depositRates, creditCommission, maxWithdraw, maxRemittance);
         _banks.add(bank);
         _subscribers.add(bank);
         return bank;
     }
 
-    @Override
-    public void AddBank(IBank bank) {
-        _banks.add(bank);
-        _subscribers.add(bank);
-    }
-
-    @Override
     public IBank GetBankByName(String bankName) {
         if (bankName == null) {
             throw new IllegalArgumentException();
@@ -58,7 +49,6 @@ public class CentralBank implements ICentralBank {
         throw new IllegalArgumentException();
     }
 
-    @Override
     public IBank GetBankById(UUID id) {
         if (id == null) {
             throw new NullPointerException();
@@ -73,17 +63,14 @@ public class CentralBank implements ICentralBank {
         throw new IllegalArgumentException();
     }
 
-    @Override
     public void AddSubscriber(ISubscriber subscriber) {
         _subscribers.add(subscriber);
     }
 
-    @Override
     public void RemoveSubscriber(ISubscriber subscriber) {
         _subscribers.remove(subscriber);
     }
 
-    @Override
     public void NotifySubscribers(LocalDate time) {
         for(IBank bank : _banks) {
             bank.Update(time);

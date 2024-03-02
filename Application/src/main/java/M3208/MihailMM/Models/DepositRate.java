@@ -1,21 +1,27 @@
 package M3208.MihailMM.Models;
 
 public class DepositRate {
-    private Double UpperLimit;
-    private double Interest;
+    private Float UpperLimit;
+    private Float LowerLimit;
+    private Float Interest;
 
-    public DepositRate(Double upperLimit, double interest)
+    public DepositRate(Float lowerLimit, Float upperLimit, Float interest)
     {
         UpperLimit = upperLimit;
+        LowerLimit = lowerLimit;
         Interest = interest;
     }
 
 
-    public Double getUpperLimit() {
+    public Float getUpperLimit() {
         return UpperLimit;
     }
 
-    public double getInterest() {
+    public Float getInterest() {
         return Interest;
+    }
+
+    public Float getLowerLimit() {
+        return LowerLimit;
     }
 }

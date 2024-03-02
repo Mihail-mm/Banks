@@ -7,12 +7,13 @@ import java.util.UUID;
 
 public class Transaction implements ITransaction{
     private UUID _id;
-    private Double _transferAmount;
+    private Float _transferAmount;
     private IBankAccount _translationSource;
     private IBankAccount _toTranslation;
     private TransactionStatus _status;
 
-    public Transaction(Double transferAmount, IBankAccount translationSource, IBankAccount toTranslation) {
+    public Transaction(Float transferAmount, IBankAccount translationSource, IBankAccount toTranslation) {
+        _id = UUID.randomUUID();
         _transferAmount = transferAmount;
         _translationSource = translationSource;
         _toTranslation = toTranslation;
@@ -25,7 +26,7 @@ public class Transaction implements ITransaction{
     }
 
     @Override
-    public Double GetTransferAmount() {
+    public Float GetTransferAmount() {
         return _transferAmount;
     }
 
@@ -57,8 +58,8 @@ public class Transaction implements ITransaction{
 
     @Override
     public void Undo() {
-        _translationSource.CancelTransaction(this);
-        _toTranslation.CancelTransaction(this);
+        _translationSource.CancelTransaction(this._id);
+        _toTranslation.CancelTransaction(this._id);
 
     }
 }

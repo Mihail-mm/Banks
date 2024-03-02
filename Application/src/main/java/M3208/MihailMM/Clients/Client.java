@@ -4,7 +4,7 @@ import M3208.MihailMM.BankAccounts.IBankAccount;
 import M3208.MihailMM.Clients.ClientStatus.ClientStatus;
 import M3208.MihailMM.Clients.ClientStatus.DoubtfulStatus;
 import M3208.MihailMM.Clients.ClientStatus.VerifiedStatus;
-import M3208.MihailMM.Exceptions.ClientException;
+import M3208.MihailMM.Exceptions.ClientExceprions.InvalidCreationClient;
 import M3208.MihailMM.Models.Address;
 import M3208.MihailMM.Models.Passport;
 
@@ -17,12 +17,12 @@ public class Client {
     private final UUID _id;
     private final String _name;
     private final String _surname;
-    private Optional<Passport> _passport;
-    private Optional<Address> _address;
+    private Passport _passport;
+    private Address _address;
     private List<IBankAccount> _accounts;
     private ClientStatus _status;
 
-    private Client(String name, String surname, Optional<Passport> passport, Optional<Address> address, ClientStatus status) {
+    private Client(String name, String surname, Passport passport, Address address, ClientStatus status) {
         _id = UUID.randomUUID();
         _name = name;
         _surname = surname;
@@ -44,11 +44,11 @@ public class Client {
         return _surname;
     }
 
-    public Optional<Passport> get_passport() {
+    public Passport get_passport() {
         return _passport;
     }
 
-    public Optional<Address> get_address() {
+    public Address get_address() {
         return _address;
     }
 
@@ -65,15 +65,15 @@ public class Client {
     }
 
     public void AddPassport(Passport passport) {
-        _passport = Optional.ofNullable(passport);
-        if (_address.isPresent()) {
+        _passport = passport;
+        if (_address != null) {
             _status = new VerifiedStatus();
         }
     }
 
     public void AddAddress(Address address) {
-        _address = Optional.ofNullable(address);
-        if (_passport.isPresent()) {
+        _address = address;
+        if (_passport != null) {
             _status = new VerifiedStatus();
         }
     }
@@ -82,8 +82,8 @@ public class Client {
     public static class ClientBuilder {
         private Optional<String> _name;
         private Optional<String> _surname;
-        private Optional<Passport> _passport;
-        private Optional<Address> _address;
+        private Passport _passport;
+        private Address _address;
         private ClientStatus _status;
 
         public void AddName(String name) {
@@ -95,18 +95,18 @@ public class Client {
         }
 
         public void AddPassport(Passport passport) {
-            _passport = Optional.ofNullable(passport);
+            _passport = passport;
         }
 
         public void AddAddress(Address address) {
-            _address = Optional.ofNullable(address);
+            _address = address;
         }
 
         public Client Build() {
             if (_name.isEmpty() || _surname.isEmpty()) {
-                throw new ClientException("Add name or surname");
+                throw new InvalidCreationClient();
             }
-            if (_passport.isEmpty() || _address.isEmpty()) {
+            if (_passport == null || _address == null) {
                 _status = new DoubtfulStatus();
             } else {
                 _status = new VerifiedStatus();

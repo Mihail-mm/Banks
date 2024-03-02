@@ -7,7 +7,7 @@ import java.util.UUID;
 
 public interface ITransaction {
     UUID GetId();
-    Double GetTransferAmount();
+    Float GetTransferAmount();
     IBankAccount GetTranslationSource();
     IBankAccount GetToTranslation();
     TransactionStatus GetStatus();

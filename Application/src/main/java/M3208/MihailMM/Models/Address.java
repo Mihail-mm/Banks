@@ -13,15 +13,7 @@ public class Address {
         return Street;
     }
 
-    public void setStreet(String street) {
-        Street = street;
-    }
-
     public int getBuildingNumber() {
         return BuildingNumber;
-    }
-
-    public void setBuildingNumber(int buildingNumber) {
-        BuildingNumber = buildingNumber;
     }
 }

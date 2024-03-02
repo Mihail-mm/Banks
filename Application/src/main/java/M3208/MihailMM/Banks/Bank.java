@@ -1,6 +1,10 @@
 package M3208.MihailMM.Banks;
 
+import M3208.MihailMM.BankAccounts.CreditAccount;
+import M3208.MihailMM.BankAccounts.DebitAccount;
+import M3208.MihailMM.BankAccounts.DepositAccount;
 import M3208.MihailMM.BankAccounts.IBankAccount;
+import M3208.MihailMM.Clients.Client;
 import M3208.MihailMM.Models.DepositRate;
 
 import java.time.LocalDate;
@@ -11,19 +15,23 @@ import java.util.UUID;
 public class Bank implements IBank{
     private UUID _id;
     private String _name;
+    private List<Client> _clients;
     private List<IBankAccount> _accounts;
-    private Double _debitInterest;
+    private Float _debitInterest;
     private List<DepositRate> _depositRates;
-    private Double _creditInterest;
-    private Double _creditLimit;
+    private Float _creditCommission;
+    private Float _maxWithdraw;
+    private Float _maxRemittance;
 
-    public Bank(String name, Double debitInterest, List<DepositRate> depositRates, Double creditInterest, Double creditLimit) {
+    public Bank(String name, Float debitInterest, List<DepositRate> depositRates, Float creditCommission, Float maxWithdraw, Float maxRemittance) {
+        _id = UUID.randomUUID();
         _name = name;
         _debitInterest = debitInterest;
         _depositRates = depositRates;
-        _creditInterest = creditInterest;
-        _creditLimit = creditLimit;
+        _creditCommission = creditCommission;
         _accounts = new ArrayList<>();
+        _maxWithdraw = maxWithdraw;
+        _maxRemittance = maxRemittance;
     }
 
     @Override
@@ -37,7 +45,7 @@ public class Bank implements IBank{
     }
 
     @Override
-    public double GetDebitInterest() {
+    public Float GetDebitInterest() {
         return _debitInterest;
     }
 
@@ -47,24 +55,20 @@ public class Bank implements IBank{
     }
 
     @Override
-    public double GetCreditInterest() {
-        return _creditInterest;
+    public Float GetCreditCommission() {
+        return _creditCommission;
     }
 
     @Override
-    public Double GetCreditLimit() {
-        return _creditLimit;
+    public Float GetMaxWithdraw() {
+        return _maxWithdraw;
     }
 
     @Override
-    public List<IBankAccount> Accounts() {
-        return _accounts;
+    public Float GetMaxRemittance() {
+        return _maxRemittance;
     }
 
-    @Override
-    public List<String> ClientOfAccount() {
-        return null;
-    }
 
     @Override
     public void AddBankAccount(IBankAccount bankAccount) {
@@ -72,8 +76,27 @@ public class Bank implements IBank{
     }
 
     @Override
-    public IBankAccount GetBankAccount(String clientName) {
-        return _accounts.stream().filter(i -> i.GetClient().get_name().equals(clientName)).findFirst().orElse(null);
+    public IBankAccount CreateDebitAccount(Client client, Float startBalance) {
+        IBankAccount account = new DebitAccount(startBalance, client, this);
+        AddBankAccount(account);
+        client.AddAccount(account);
+        return account;
+    }
+
+    @Override
+    public IBankAccount CreateCreditAccount(Client client, Float startBalance) {
+        IBankAccount account = new CreditAccount(startBalance, client, this);
+        AddBankAccount(account);
+        client.AddAccount(account);
+        return account;
+    }
+
+    @Override
+    public IBankAccount CreateDepositAccount(Client client, Float startBalance, LocalDate finalDate) {
+        IBankAccount account = new DepositAccount(startBalance, client, this, finalDate);
+        AddBankAccount(account);
+        client.AddAccount(account);
+        return account;
     }
 
     @Override
