@@ -1,25 +1,27 @@
-package M3208.MihailMM.Scenarios.CreateClients;
+package M3208.MihailMM.Scenarios.ChooseUsers;
 
 import M3208.MihailMM.CurrentStates.CurrentBank.CurrentBank;
 import M3208.MihailMM.CurrentStates.CurrentClient.CurrentClient;
 import M3208.MihailMM.IScenario;
 import M3208.MihailMM.IScenarioProvider;
+import M3208.MihailMM.Repositories.ClientRepository;
 
-public class CreateClientScenarioProvider implements IScenarioProvider {
+public class ChooseUserScenarioProvider implements IScenarioProvider {
     private CurrentBank _currentBank;
     private CurrentClient _currentClient;
+    private ClientRepository _clientRepository;
 
-    public CreateClientScenarioProvider(CurrentBank currentBank, CurrentClient currentClient) {
+    public ChooseUserScenarioProvider(CurrentBank currentBank, CurrentClient currentClient, ClientRepository clientRepository) {
         _currentBank = currentBank;
         _currentClient = currentClient;
+        _clientRepository = clientRepository;
     }
 
     @Override
     public IScenario TryGetScenario() {
-        IScenario scenario = null;
         if (_currentBank.getBank() != null && _currentClient.get_client() == null) {
-            scenario = new CreateClientScenario(_currentClient);
+            return new ChooseUserScenario(_currentBank, _currentClient, _clientRepository);
         }
-        return scenario;
+        return null;
     }
 }

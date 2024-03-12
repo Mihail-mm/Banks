@@ -15,6 +15,7 @@ public class ShowAccountsScenario implements IScenario {
         _currentBank = currentBank;
         _currentClient = currentClient;
     }
+
     @Override
     public String GetName() {
         return "Show Accounts";
@@ -23,7 +24,7 @@ public class ShowAccountsScenario implements IScenario {
     @Override
     public void Run() {
         List<IBankAccount> accounts = _currentClient.get_client().get_accounts();
-        for(int i = 0; i < accounts.size(); ++i) {
+        for (int i = 0; i < accounts.size(); ++i) {
             IBankAccount bankAccount = accounts.get(i);
             System.out.print("Type : " + bankAccount.getClass() + "\n");
             System.out.print("BankId : " + bankAccount.GetId() + "\n");

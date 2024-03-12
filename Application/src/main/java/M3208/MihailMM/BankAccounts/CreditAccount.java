@@ -38,6 +38,11 @@ public class CreditAccount implements IBankAccount{
     }
 
     @Override
+    public String GetAccountType() {
+        return "Credit";
+    }
+
+    @Override
     public UUID GetId() {
         return _id;
     }
@@ -53,11 +58,28 @@ public class CreditAccount implements IBankAccount{
     }
 
     @Override
+    public List<ITransaction> GetHistory() {
+        return _history;
+    }
+
+    @Override
     public WithdrawResult WithdrawMoney(Float money) {
         if (_bank.GetMaxWithdraw() < money && _client.get_status() instanceof DoubtfulStatus) {
             return new WithdrawMoneyNotVerified();
         }
         var newTransaction = new Transaction(money, this, null);
+        _history.add(newTransaction);
+        _balance -= money;
+        newTransaction.SetStatus(new CompletedStatus());
+        return new WithdrawSuccessResult();
+    }
+
+    @Override
+    public WithdrawResult WithdrawMoney(Float money, IBankAccount account) {
+        if (_bank.GetMaxWithdraw() < money && _client.get_status() instanceof DoubtfulStatus) {
+            return new WithdrawMoneyNotVerified();
+        }
+        ITransaction newTransaction = new Transaction(money, this, account);
         _history.add(newTransaction);
         _balance -= money;
         newTransaction.SetStatus(new CompletedStatus());
@@ -73,20 +95,8 @@ public class CreditAccount implements IBankAccount{
     }
 
     @Override
-    public WithdrawResult WithdrawMoney(Float money, IBankAccount toTranslation) {
-        if (_bank.GetMaxWithdraw() < money && _client.get_status() instanceof DoubtfulStatus) {
-            return new WithdrawMoneyNotVerified();
-        }
-        var newTransaction = new Transaction(money, this, toTranslation);
-        _history.add(newTransaction);
-        _balance -= money;
-        newTransaction.SetStatus(new CompletedStatus());
-        return new WithdrawSuccessResult();
-    }
-
-    @Override
-    public void Replenishment(Float money, IBankAccount fromTranslation) {
-        var newTransaction = new Transaction(money, fromTranslation, this);
+    public void Replenishment(Float money, IBankAccount account) {
+        var newTransaction = new Transaction(money, account, this);
         _history.add(newTransaction);
         _balance += money;
         newTransaction.SetStatus(new CompletedStatus());
@@ -94,27 +104,25 @@ public class CreditAccount implements IBankAccount{
 
     @Override
     public TransferMoneyResult TransferMoney(IBankAccount toTranslation, Float money) {
-        if (money > _bank.GetMaxRemittance() && _client.get_status() instanceof DoubtfulStatus) {
+        if (_bank.GetMaxWithdraw() < money && _client.get_status() instanceof DoubtfulStatus) {
             return new TransferMoneyDoubtfulResult();
         }
-        var newTransaction = new Transaction(money, this, toTranslation);
-        _history.add(newTransaction);
-        _balance -= money;
-        newTransaction.SetStatus(new CompletedStatus());
+        this.WithdrawMoney(money, toTranslation);
+        toTranslation.Replenishment(money, this);
         return new TransferMoneySuccess();
     }
 
     @Override
-    public CancelTransactionResult CancelTransaction(UUID idTransaction) {
-        ITransaction cancelTransaction = _history.stream().filter(transaction -> transaction.GetId() == idTransaction).findFirst().orElse(null);
-        if (cancelTransaction == null) {
-            return new CancelTransactionNotFound();
+    public CancelTransactionResult CancelTransaction(ITransaction toCancel) {
+        if (toCancel.GetToTranslation() == this) {
+            _balance -= toCancel.GetTransferAmount();
         }
-        if (cancelTransaction.GetStatus() instanceof CancelStatus) {
-            return new CancelTransactionAlreadyCancel();
+        if (toCancel.GetTranslationSource() == this)
+        {
+            _balance += toCancel.GetTransferAmount();
         }
-        Replenishment(cancelTransaction.GetTransferAmount());
-        cancelTransaction.SetStatus(new CancelStatus());
+
+        toCancel.SetStatus(new CancelStatus());
         return new CancelTransactionSuccess();
     }
 

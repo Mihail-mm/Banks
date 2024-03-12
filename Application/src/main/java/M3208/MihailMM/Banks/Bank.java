@@ -34,6 +34,7 @@ public class Bank implements IBank{
         _maxRemittance = maxRemittance;
     }
 
+
     @Override
     public String GetName() {
         return _name;
@@ -97,6 +98,11 @@ public class Bank implements IBank{
         AddBankAccount(account);
         client.AddAccount(account);
         return account;
+    }
+
+    @Override
+    public List<IBankAccount> GetBankAccounts() {
+        return _accounts;
     }
 
     @Override

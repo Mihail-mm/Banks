@@ -12,9 +12,11 @@ import java.util.Scanner;
 
 public class CreateBankScenario implements IScenario {
     private CurrentBank _currentBank;
+
     public CreateBankScenario(CurrentBank currentBank) {
         _currentBank = currentBank;
     }
+
     @Override
     public String GetName() {
         return "Create Bank";
@@ -37,7 +39,7 @@ public class CreateBankScenario implements IScenario {
         System.out.println("Write count deposit rates: ");
         int countDepositRates = scanner.nextInt();
         List<DepositRate> depositRates = new ArrayList<>();
-        for(int i = 0; i < countDepositRates; ++i) {
+        for (int i = 0; i < countDepositRates; ++i) {
             System.out.println("Write Lower Limit: ");
             Float lowerLimit = scanner.nextFloat();
             System.out.println("Write Upper Limit: ");

@@ -38,6 +38,11 @@ public class DepositAccount implements IBankAccount {
     }
 
     @Override
+    public String GetAccountType() {
+        return "Deposit";
+    }
+
+    @Override
     public UUID GetId() {
         return _id;
     }
@@ -50,6 +55,11 @@ public class DepositAccount implements IBankAccount {
     @Override
     public Float GetBalance() {
         return _balance;
+    }
+
+    @Override
+    public List<ITransaction> GetHistory() {
+        return _history;
     }
 
     @Override
@@ -71,6 +81,15 @@ public class DepositAccount implements IBankAccount {
     }
 
     @Override
+    public WithdrawResult WithdrawMoney(Float money, IBankAccount account) {
+        ITransaction newTransaction = new Transaction(money, this, account);
+        _history.add(newTransaction);
+        _balance -= money;
+        newTransaction.SetStatus(new CompletedStatus());
+        return new WithdrawSuccessResult();
+    }
+
+    @Override
     public void Replenishment(Float money) {
         var newTransaction = new Transaction(money, null, this);
         _history.add(newTransaction);
@@ -79,27 +98,8 @@ public class DepositAccount implements IBankAccount {
     }
 
     @Override
-    public WithdrawResult WithdrawMoney(Float money, IBankAccount toTranslation) {
-        if (_finalDate.isAfter(LocalDate.now())) {
-            return new WithdrawMoneyDepositLimit();
-        }
-        if (_balance < money) {
-            return new NotEnoughMoneyResult();
-        }
-        if (_bank.GetMaxWithdraw() < money && _client.get_status() instanceof DoubtfulStatus) {
-            return new WithdrawMoneyNotVerified();
-        }
-
-        var newTransaction = new Transaction(money, this, toTranslation);
-        _history.add(newTransaction);
-        newTransaction.Execute();
-        newTransaction.SetStatus(new CompletedStatus());
-        return new WithdrawSuccessResult();
-    }
-
-    @Override
-    public void Replenishment(Float money, IBankAccount fromTranslation) {
-        var newTransaction = new Transaction(money, fromTranslation, this);
+    public void Replenishment(Float money, IBankAccount account) {
+        var newTransaction = new Transaction(money, account, this);
         _history.add(newTransaction);
         _balance += money;
         newTransaction.SetStatus(new CompletedStatus());
@@ -107,35 +107,21 @@ public class DepositAccount implements IBankAccount {
 
     @Override
     public TransferMoneyResult TransferMoney(IBankAccount toTranslation, Float money) {
-        if (money > _bank.GetMaxRemittance() && _client.get_status() instanceof DoubtfulStatus) {
-            return new TransferMoneyDoubtfulResult();
-        }
-        if (_balance < money) {
-            return new TransferMoneyNotEnough();
-        }
-
-        if (_finalDate.isAfter(LocalDate.now())) {
-            return new TransferMoneyDepositLimit();
-        }
-
-        var newTransaction = new Transaction(money, this, toTranslation);
-        _history.add(newTransaction);
-        newTransaction.Execute();
-        newTransaction.SetStatus(new CompletedStatus());
+        this.WithdrawMoney(money, toTranslation);
+        toTranslation.Replenishment(money, this);
         return new TransferMoneySuccess();
     }
 
     @Override
-    public CancelTransactionResult CancelTransaction(UUID idTransaction) {
-        ITransaction cancelTransaction = _history.stream().filter(transaction -> transaction.GetId() == idTransaction).findFirst().orElse(null);
-        if (cancelTransaction == null) {
-            return new CancelTransactionNotFound();
+    public CancelTransactionResult CancelTransaction(ITransaction toCancel) {
+        if (toCancel.GetToTranslation() == this) {
+            _balance -= toCancel.GetTransferAmount();
         }
-        if (cancelTransaction.GetStatus() instanceof CancelStatus) {
-            return new CancelTransactionAlreadyCancel();
+        if (toCancel.GetTranslationSource() == this) {
+            _balance += toCancel.GetTransferAmount();
         }
-        Replenishment(cancelTransaction.GetTransferAmount());
-        cancelTransaction.SetStatus(new CancelStatus());
+
+        toCancel.SetStatus(new CancelStatus());
         return new CancelTransactionSuccess();
     }
 
@@ -151,6 +137,7 @@ public class DepositAccount implements IBankAccount {
 
         transaction.SetStatus(new CompletedStatus());
     }
+
 
     @Override
     public void Update(LocalDate time) {

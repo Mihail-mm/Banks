@@ -58,8 +58,8 @@ public class Transaction implements ITransaction{
 
     @Override
     public void Undo() {
-        _translationSource.CancelTransaction(this._id);
-        _toTranslation.CancelTransaction(this._id);
+        _translationSource.CancelTransaction(this);
+        _toTranslation.CancelTransaction(this);
 
     }
 }

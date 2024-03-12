@@ -4,7 +4,6 @@ import M3208.MihailMM.Banks.IBank;
 import M3208.MihailMM.Clients.Client;
 import M3208.MihailMM.Clients.ClientStatus.DoubtfulStatus;
 import M3208.MihailMM.ResultTypes.CancelTransactionResults.CancelTransactionAlreadyCancel;
-import M3208.MihailMM.ResultTypes.CancelTransactionResults.CancelTransactionNotFound;
 import M3208.MihailMM.ResultTypes.CancelTransactionResults.CancelTransactionResult;
 import M3208.MihailMM.ResultTypes.CancelTransactionResults.CancelTransactionSuccess;
 import M3208.MihailMM.ResultTypes.TransferMoneyResults.TransferMoneyDoubtfulResult;
@@ -25,13 +24,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-public class DebitAccount implements IBankAccount{
+public class DebitAccount implements IBankAccount {
+    private final Client _client;
+    private final IBank _bank;
     private UUID _id;
     private List<ITransaction> _history;
     private Float _accumulatedInterest;
-    private final Client _client;
     private Float _balance;
-    private final IBank _bank;
 
     public DebitAccount(Float balance, Client client, IBank bank) {
         _id = UUID.randomUUID();
@@ -39,6 +38,11 @@ public class DebitAccount implements IBankAccount{
         _balance = balance;
         _client = client;
         _bank = bank;
+    }
+
+    @Override
+    public String GetAccountType() {
+        return "Debit";
     }
 
     @Override
@@ -57,9 +61,13 @@ public class DebitAccount implements IBankAccount{
     }
 
     @Override
+    public List<ITransaction> GetHistory() {
+        return _history;
+    }
+
+    @Override
     public WithdrawResult WithdrawMoney(Float money) {
-        if (_balance < money)
-        {
+        if (_balance < money) {
             return new NotEnoughMoneyResult();
         }
 
@@ -75,6 +83,22 @@ public class DebitAccount implements IBankAccount{
     }
 
     @Override
+    public WithdrawResult WithdrawMoney(Float money, IBankAccount account) {
+        if (_balance < money) {
+            return new NotEnoughMoneyResult();
+        }
+
+        if (_bank.GetMaxWithdraw() < money && _client.get_status() instanceof DoubtfulStatus) {
+            return new WithdrawMoneyNotVerified();
+        }
+        ITransaction newTransaction = new Transaction(money, this, account);
+        _history.add(newTransaction);
+        _balance -= money;
+        newTransaction.SetStatus(new CompletedStatus());
+        return new WithdrawSuccessResult();
+    }
+
+    @Override
     public void Replenishment(Float money) {
         var newTransaction = new Transaction(money, null, this);
         _history.add(newTransaction);
@@ -83,26 +107,8 @@ public class DebitAccount implements IBankAccount{
     }
 
     @Override
-    public WithdrawResult WithdrawMoney(Float money, IBankAccount toTranslation) {
-        if (_balance < money)
-        {
-            return new NotEnoughMoneyResult();
-        }
-
-        if (_bank.GetMaxWithdraw() < money && _client.get_status() instanceof DoubtfulStatus) {
-            return new WithdrawMoneyNotVerified();
-        }
-
-        var newTransaction = new Transaction(money, this, toTranslation);
-        _history.add(newTransaction);
-        newTransaction.Execute();
-        newTransaction.SetStatus(new CompletedStatus());
-        return new WithdrawSuccessResult();
-    }
-
-    @Override
-    public void Replenishment(Float money, IBankAccount fromTranslation) {
-        var newTransaction = new Transaction(money, fromTranslation, this);
+    public void Replenishment(Float money, IBankAccount account) {
+        var newTransaction = new Transaction(money, account, this);
         _history.add(newTransaction);
         _balance += money;
         newTransaction.SetStatus(new CompletedStatus());
@@ -110,32 +116,27 @@ public class DebitAccount implements IBankAccount{
 
     @Override
     public TransferMoneyResult TransferMoney(IBankAccount toTranslation, Float money) {
-        if (money > _bank.GetMaxRemittance() && _client.get_status() instanceof DoubtfulStatus) {
+        if (_bank.GetMaxWithdraw() < money && _client.get_status() instanceof DoubtfulStatus) {
             return new TransferMoneyDoubtfulResult();
         }
-        if (_balance < money)
-        {
+        if (money > _balance) {
             return new TransferMoneyNotEnough();
         }
-
-        var newTransaction = new Transaction(money, this, toTranslation);
-        _history.add(newTransaction);
-        newTransaction.Execute();
-        newTransaction.SetStatus(new CompletedStatus());
+        this.WithdrawMoney(money, toTranslation);
+        toTranslation.Replenishment(money, this);
         return new TransferMoneySuccess();
     }
 
     @Override
-    public CancelTransactionResult CancelTransaction(UUID idTransaction) {
-        ITransaction cancelTransaction = _history.stream().filter(transaction -> transaction.GetId() == idTransaction).findFirst().orElse(null);
-        if (cancelTransaction == null) {
-            return new CancelTransactionNotFound();
+    public CancelTransactionResult CancelTransaction(ITransaction toCancel) {
+        if (toCancel.GetToTranslation() == this) {
+            _balance -= toCancel.GetTransferAmount();
         }
-        if (cancelTransaction.GetStatus() instanceof CancelStatus) {
-            return new CancelTransactionAlreadyCancel();
+        if (toCancel.GetTranslationSource() == this) {
+            _balance += toCancel.GetTransferAmount();
         }
-        Replenishment(cancelTransaction.GetTransferAmount());
-        cancelTransaction.SetStatus(new CancelStatus());
+
+        toCancel.SetStatus(new CancelStatus());
         return new CancelTransactionSuccess();
     }
 
@@ -145,8 +146,7 @@ public class DebitAccount implements IBankAccount{
         if (transaction.GetToTranslation() == this) {
             _balance += transaction.GetTransferAmount();
         }
-        if (transaction.GetTranslationSource() == this)
-        {
+        if (transaction.GetTranslationSource() == this) {
             _balance -= transaction.GetTransferAmount();
         }
 
@@ -155,8 +155,7 @@ public class DebitAccount implements IBankAccount{
 
     @Override
     public void Update(LocalDate time) {
-        if (time.getDayOfMonth() == 1)
-        {
+        if (time.getDayOfMonth() == 1) {
             this.Replenishment(_accumulatedInterest);
             _accumulatedInterest = 0f;
         }

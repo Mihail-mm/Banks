@@ -161,7 +161,25 @@ public class Tests {
         IBankAccount IDebit = sber.CreateDebitAccount(I, 1000f);
         IBankAccount MyFriendDebit = sber.CreateDebitAccount(MyFriend, 1000f);
 
-        IDebit.TransferMoney(MyFriendDebit, 200f);
+        IBankAccount MyCredit = sber.CreateCreditAccount(I, 1000f);
+        IBankAccount MyFriendCredit = sber.CreateCreditAccount(MyFriend, 1000f);
 
+        IBankAccount MyDeposit = sber.CreateDepositAccount(I, 1000f, LocalDate.of(2024, 2, 29));
+        IBankAccount MyFriendDeposit = sber.CreateDepositAccount(MyFriend, 1000f, LocalDate.of(2024, 2, 29));
+
+        IDebit.TransferMoney(MyFriendDebit, 200f);
+        MyCredit.TransferMoney(MyFriendCredit, 200f);
+        MyDeposit.TransferMoney(MyFriendDeposit, 200f);
+
+        IDebit.GetHistory().get(0).Undo();
+        MyCredit.GetHistory().get(0).Undo();
+        MyDeposit.GetHistory().get(0).Undo();
+
+        assertEquals(1000, MyFriendDebit.GetBalance());
+        assertEquals(1000, IDebit.GetBalance());
+        assertEquals(1000, MyCredit.GetBalance());
+        assertEquals(1000, MyFriendCredit.GetBalance());
+        assertEquals(1000, MyDeposit.GetBalance());
+        assertEquals(1000, MyFriendDeposit.GetBalance());
     }
 }

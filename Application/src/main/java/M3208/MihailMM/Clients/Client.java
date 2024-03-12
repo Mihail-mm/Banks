@@ -1,6 +1,7 @@
 package M3208.MihailMM.Clients;
 
 import M3208.MihailMM.BankAccounts.IBankAccount;
+import M3208.MihailMM.Banks.IBank;
 import M3208.MihailMM.Clients.ClientStatus.ClientStatus;
 import M3208.MihailMM.Clients.ClientStatus.DoubtfulStatus;
 import M3208.MihailMM.Clients.ClientStatus.VerifiedStatus;
@@ -85,6 +86,7 @@ public class Client {
         private Passport _passport;
         private Address _address;
         private ClientStatus _status;
+        private IBank _bank;
 
         public void AddName(String name) {
             _name = name.describeConstable();
@@ -100,6 +102,9 @@ public class Client {
 
         public void AddAddress(Address address) {
             _address = address;
+        }
+        public void AddBank(IBank bank) {
+            _bank = bank;
         }
 
         public Client Build() {

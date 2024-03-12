@@ -3,6 +3,7 @@ package M3208.MihailMM.Banks;
 import M3208.MihailMM.BankAccounts.IBankAccount;
 import M3208.MihailMM.Clients.Client;
 import M3208.MihailMM.Models.DepositRate;
+import M3208.MihailMM.Observer.IPublisher;
 import M3208.MihailMM.Observer.ISubscriber;
 
 import java.time.LocalDate;
@@ -21,5 +22,6 @@ public interface IBank extends ISubscriber {
     IBankAccount CreateDebitAccount(Client client, Float startBalance);
     IBankAccount CreateCreditAccount(Client client, Float startBalance);
     IBankAccount CreateDepositAccount(Client client, Float startBalance, LocalDate finalDate);
+    List<IBankAccount> GetBankAccounts();
 
 }

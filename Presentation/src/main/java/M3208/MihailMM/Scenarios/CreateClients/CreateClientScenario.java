@@ -9,9 +9,11 @@ import java.util.Scanner;
 
 public class CreateClientScenario implements IScenario {
     private CurrentClient _currentClient;
+
     public CreateClientScenario(CurrentClient currentClient) {
         _currentClient = currentClient;
     }
+
     @Override
     public String GetName() {
         return "Create Client";
